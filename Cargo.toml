@@ -4,3 +4,6 @@ members = [
 	"matiaos",
 	"pusher"
 ]
+
+[profile.release]
+lto = true

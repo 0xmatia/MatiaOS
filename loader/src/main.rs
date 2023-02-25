@@ -1,7 +1,6 @@
 #![doc(html_logo_url = "https://git.io/JeGIp")]
 
 //! Enter point of, well, everything
-//! Well, not really, more general metadata, module definitions etc...
 #![feature(format_args_nl)]
 #![feature(panic_info_message)]
 #![feature(trait_alias)]
@@ -22,7 +21,7 @@ mod panic_handler;
 /// # Safety
 ///
 /// - Only a single core must be active and running this function.
-unsafe fn kernel_init() -> ! {
+unsafe fn loader_init() -> ! {
     use crate::driver::interface::DeviceManager;
 
     for i in bsp::driver::driver_manager().all_device_drivers().iter() {
@@ -32,26 +31,27 @@ unsafe fn kernel_init() -> ! {
     }
     bsp::driver::driver_manager().post_device_driver_init();
 
-    kernel_main();
+    loader_main();
 }
 
 const LOADER_LOGO: &str = r#"
-.____                     .___            
-|    |    _________     __| _/___________ 
-|    |   /  _ \__  \   / __ |/ __ \_  __ \
-|    |__(  <_> ) __ \_/ /_/ \  ___/|  | \/
-|_______ \____(____  /\____ |\___  >__|   
-        \/         \/      \/    \/
+ _____ ______   ________  ________  ________  _________   
+|\   _ \  _   \|\   __  \|\   __  \|\   __  \|\___   ___\ 
+\ \  \\\__\ \  \ \  \|\ /\ \  \|\  \ \  \|\  \|___ \  \_| 
+ \ \  \\|__| \  \ \   __  \ \  \\\  \ \  \\\  \   \ \  \  
+  \ \  \    \ \  \ \  \|\  \ \  \\\  \ \  \\\  \   \ \  \ 
+   \ \__\    \ \__\ \_______\ \_______\ \_______\   \ \__\
+    \|__|     \|__|\|_______|\|_______|\|_______|    \|__|
 "#;
 
-fn kernel_main() -> ! {
+fn loader_main() -> ! {
     use bsp::console::console;
     use console::interface::All;
 
     println!("{}", LOADER_LOGO);
-    println!("Running on: {}", bsp::board_name());
+    println!("[Loader] Running on: {}", bsp::board_name());
     println!();
-    println!("Requesting binary!");
+    println!("[Loader] Requesting binary!");
     console().flush();
 
     console().clear_rx();
@@ -78,7 +78,7 @@ fn kernel_main() -> ! {
         }
     }
 
-    println!("Received kernel, executing now!");
+    println!("[Loader] Received kernel, executing now!");
     console().flush();
 
     let kernel: fn() -> ! = unsafe { core::mem::transmute(kernel_addr) };

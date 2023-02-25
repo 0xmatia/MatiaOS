@@ -14,7 +14,7 @@
 //!
 //! crate::cpu::arch_cpu
 
-use cortex_a::asm;
+use aarch64_cpu::asm;
 
 pub use asm::nop; // export cpu::nop() for waiting
 

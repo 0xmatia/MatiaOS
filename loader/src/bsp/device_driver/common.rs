@@ -5,9 +5,9 @@
  * Author: Elad Matia (elad.matia@gmail.com)
  */
 
-/* TODO: Taken as is from the project, I can't fully understand everything thats going on at the moment
-but I hope soon enough. 
-this helps: https://github.com/rust-embedded/register-rs */
+// TODO: Taken as is from the project, I can't fully understand everything thats going on at the moment
+// but I hope soon enough. 
+// this helps: https://github.com/rust-embedded/register-rs
 
 
 //! Common device driver code.

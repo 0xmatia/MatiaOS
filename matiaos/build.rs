@@ -8,6 +8,6 @@ fn main() {
 
     // not 100% why, but this tell rustc to recombile if 
     // either the linker script has changed or the build script itself
-    println!("cargo:rerun-if-changed={}", linker_file);
+    println!("cargo:rerun-if-changed={linker_file}");
     println!("cargo:rerun-if-changed=build.rs");
 }

@@ -8,13 +8,13 @@
  //! Include the assembly file that is responsible for booting the kernel
  //! for the aarch64 architecture.
 
-use crate::kernel_init;
+use crate::loader_init;
  
 core::arch::global_asm!(include_str!("boot.s"));
 
 
 #[no_mangle]
 pub unsafe fn _start_rust() {
-    kernel_init()
+    loader_init()
 }
 

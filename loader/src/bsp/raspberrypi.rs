@@ -33,7 +33,6 @@ pub fn board_name() -> &'static str {
     
     #[cfg(feature="bsp_rpi4")]
     {
-
         "Raspberry pi 4"
     }
 }

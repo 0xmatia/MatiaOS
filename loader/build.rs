@@ -7,6 +7,6 @@ fn main() {
     let linker_file = env::var("LINKER_FILE").unwrap_or_default();
 
     // Recompile if linker script or build script has changed
-    println!("cargo:rerun-if-changed={}", linker_file);
+    println!("cargo:rerun-if-changed={linker_file}");
     println!("cargo:rerun-if-changed=build.rs");
 }
