@@ -5,6 +5,9 @@
  * Author: Elad Matia (elad.matia@gmail.com)
  */
 
+mod null_console;
+use crate::synchronization::{NullLock, interface::Mutex};
+
 pub mod interface {
     pub use core::fmt;
 
@@ -39,6 +42,28 @@ pub mod interface {
         }
     }
 
-    /// trait alias: All for output interface that needs to implement
-    pub trait All = Read + Write + Statistics;
+    /// trait alias: All the stuff a fully functional console needs
+    pub trait All: Read + Write + Statistics {}
 }
+
+//--------------------------------------------------------------------------------------------------
+// Public definitions
+//--------------------------------------------------------------------------------------------------
+
+static CUR_CONSOLE: NullLock<&'static (dyn interface::All + Sync)> = NullLock::new(&null_console::NULL_CONSOLE);
+
+//--------------------------------------------------------------------------------------------------
+// Public Code
+//--------------------------------------------------------------------------------------------------
+
+/// Register a new console.
+pub fn register_console(new_console: &'static (dyn interface::All + Sync)) {
+    CUR_CONSOLE.lock(|con| *con = new_console);
+}
+
+/// Return a reference to the currently registered console.
+///
+/// This is the global console used by all printing macros.
+pub fn console() -> &'static dyn interface::All {
+    CUR_CONSOLE.lock(|con| *con)
+} 

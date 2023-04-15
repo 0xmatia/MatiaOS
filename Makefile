@@ -31,8 +31,8 @@ ifeq ($(BSP),rpi3)
     OBJDUMP_BINARY    = aarch64-unknown-linux-gnu-objdump
     NM_BINARY         = aarch64-unknown-linux-gnu-nm
     READELF_BINARY    = aarch64-unknown-linux-gnu-readelf
-	# TODO: extract linker to common folder or something
-    LINKER_FILE       = loader/src/bsp/raspberrypi/link.ld 
+    KERNEL_LD_FILE    = matiaos/src/bsp/raspberrypi/kernel.ld 
+    LOADER_LD_FILE    = loader/src/bsp/raspberrypi/loader.ld 
     RUSTC_MISC_ARGS   = -C target-cpu=cortex-a53 
 else ifeq ($(BSP),rpi4)
     TARGET            = aarch64-unknown-none-softfloat
@@ -44,16 +44,17 @@ else ifeq ($(BSP),rpi4)
     OBJDUMP_BINARY    = aarch64-unknown-linux-gnu-objdump
     NM_BINARY         = aarch64-unknown-linux-gnu-nm
     READELF_BINARY    = aarch64-unknown-linux-gnu-readelf
-    LINKER_FILE       = src/bsp/raspberrypi/link.ld
+    KERNEL_LD_FILE    = matiaos/src/bsp/raspberrypi/kernel.ld 
+    LOADER_LD_FILE    = loader/src/bsp/raspberrypi/loader.ld 
     RUSTC_MISC_ARGS   = -C target-cpu=cortex-a72
 endif
 
 QEMU_MISSING_STRING = "This board is not yet supported for QEMU."
 
 # Export for build.rs.
-export LINKER_FILE
+export KERNEL_LD_FILE
+export LOADER_LD_FILE
 
-# pusher arguments
 DEVICE = /dev/ttyUSB0
 BAUDRATE = 115200
 
@@ -64,8 +65,7 @@ PUSHER_ELF = target/release/pusher
 ##--------------------------------------------------------------------------------------------------
 ## Command building blocks
 ##--------------------------------------------------------------------------------------------------
-RUSTFLAGS          = -C link-arg=-T$(LINKER_FILE) $(RUSTC_MISC_ARGS)
-RUSTFLAGS_PEDANTIC = $(RUSTFLAGS) -D missing_docs -D warnings
+RUSTFLAGS = $(RUSTC_MISC_ARGS) -D missing_docs -D warnings
 
 # for conditional compiling (rpi3, rpi4 etc...)
 FEATURES      = --features bsp_$(BSP) 
@@ -73,10 +73,11 @@ COMPILER_ARGS = --target=$(TARGET) \
     $(FEATURES)                    \
     --release
 
-RUSTC_CMD   = cargo build $(COMPILER_ARGS)
+CARGO_CMD   = cargo build $(COMPILER_ARGS)
 DOC_CMD     = cargo doc $(COMPILER_ARGS) --workspace --exclude pusher
 CLIPPY_CMD  = cargo clippy $(COMPILER_ARGS)
-CHECK_CMD   = cargo check $(COMPILER_ARGS)
+CHECK_CMD   = cargo check $(COMPILER_ARGS) --workspace --exclude pusher
+
 OBJCOPY_CMD = rust-objcopy \
     --strip-all            \
     -O binary
@@ -102,7 +103,7 @@ loader: $(LOADER_BIN)
 ##------------------------------------------------------------------------------
 $(KERNEL_ELF):
 	$(call colorecho, "Compiling kernel - $(BSP)")
-	@RUSTFLAGS="$(RUSTFLAGS_PEDANTIC)" $(RUSTC_CMD) -p matiaos
+	@RUSTFLAGS="-C link-arg=-T$(KERNEL_LD_FILE) $(RUSTFLAGS)" $(CARGO_CMD) -p matiaos
 
 ##------------------------------------------------------------------------------
 ## Build the stripped kernel binary
@@ -115,7 +116,7 @@ $(KERNEL_BIN): $(KERNEL_ELF)
 ##------------------------------------------------------------------------------
 $(LOADER_ELF):
 	$(call colorecho, "Compiling loader - $(BSP)")
-	@RUSTFLAGS="$(RUSTFLAGS_PEDANTIC)" $(RUSTC_CMD) -p loader
+	@RUSTFLAGS="-C link-arg=-T$(LOADER_LD_FILE) $(RUSTFLAGS)" $(CARGO_CMD) -p loader
 
 ##------------------------------------------------------------------------------
 ## Build the stripped loader binary
@@ -154,6 +155,14 @@ pusher: $(KERNEL_BIN)
 
 	$(call colorecho, "Running pusher")
 	sudo $(PUSHER_ELF) $(DEVICE) $(BAUDRATE) $(KERNEL_BIN)
+
+##------------------------------------------------------------------------------
+## Check project
+##------------------------------------------------------------------------------
+
+check:
+	$(call colorecho, "Checking MatiaOS")
+	$(CHECK_CMD) 
 
 ##------------------------------------------------------------------------------
 ## Run clippy

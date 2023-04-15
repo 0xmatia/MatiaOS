@@ -319,7 +319,7 @@ impl PL011Uart {
 
 impl driver::interface::DeviceDriver for PL011Uart {
     fn compatible(&self) -> &'static str {
-        "BCM PL011 UART"
+        "BCM PL011 UART Device driver version 1.0"
     }
     
     fn init(&self) -> Result<(), &'static str> {
@@ -363,3 +363,5 @@ impl console::interface::Statistics for PL011Uart {
         self.inner.lock(|inner|inner.chars_read)
     }
 }
+
+impl console::interface::All for PL011Uart {}

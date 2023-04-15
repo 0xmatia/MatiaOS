@@ -5,17 +5,19 @@
 #![feature(format_args_nl)]
 #![feature(panic_info_message)]
 #![feature(trait_alias)]
+#![feature(unchecked_math)]
+#![feature(const_option)]
 #![no_main]
 #![no_std]
 
-
-mod cpu;
 mod bsp;
 mod console;
-mod print;
-mod synchronization;
+mod cpu;
 mod driver;
 mod panic_handler;
+mod print;
+mod synchronization;
+mod time;
 
 /// Early init code.
 ///
@@ -23,14 +25,13 @@ mod panic_handler;
 ///
 /// - Only a single core must be active and running this function.
 unsafe fn kernel_init() -> ! {
-    use crate::driver::interface::DeviceManager;
-
-    for i in bsp::driver::driver_manager().all_device_drivers().iter() {
-        if let Err(e) = i.init() {
-            panic!("Error initializing {} driver: {}", i.compatible(), e);
-        }
+    if let Err(e) = bsp::driver::init() {
+        panic!("Error initializing the driver subsystem !! {}", e)
     }
-    bsp::driver::driver_manager().post_device_driver_init();
+
+    // Initialize driver
+    driver::driver_manager().init_drivers();
+    // Console should now be registered
 
     kernel_main();
 }
@@ -45,19 +46,21 @@ const OS_LOGO: &str = r#"
 "#;
 
 fn kernel_main() -> ! {
-    use bsp::console::console;
-    use console::interface::All;
+    println!("{OS_LOGO}");
+    info!("Booting on: {}", bsp::board_name());
+    info!("UART Console registered!");
 
-    println!("{}", OS_LOGO);
-    println!("Running on: {}", bsp::board_name());
-    println!();
-    println!("MatiaOS version 0.1 online");
-    println!("Echo mode on");
-    console().flush();
-    console().clear_rx();
+    info!("Loaded drivers:");
+    driver::driver_manager().enumerate();
+    info!(
+        "uptime: {} seconds",
+        time::time_manager().uptime().as_secs()
+    );
 
+    info!("MatiaOS version {} is online", env!("CARGO_PKG_VERSION"));
+    info!("Echo mode is on");
     loop {
-        let chr = console().read_char();
-        console().write_char(chr);
+        let chr = console::console().read_char();
+        console::console().write_char(chr);
     }
 }
