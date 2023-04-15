@@ -6,19 +6,15 @@
  */
 
 kernel_addr_in_memory = 0x80000;
+dram_start_addr       = 0x0;
 
 ENTRY(kernel_addr_in_memory)
 
-/* Apparently not needed :) */
-/* MEMORY
-{
-    RAM (rwx) : ORIGIN = kernel_addr_in_memory, LENGTH = 1023M
-} */
-
 /*
 * Segments are marked PT_LOAD below so that the ELF file provides virtual and physical addresses.
-* It doesn't mean all of them need actually be loaded. - but why? how come the boot core stack isn't loaded? where is it?
+* It doesn't mean all of them need actually be loaded. 
 */
+
 PHDRS
 {
     segment_boot_core_stack PT_LOAD FLAGS(6); /* 6 == RW */
@@ -28,7 +24,7 @@ PHDRS
 
 SECTIONS
 {
-    . = 0x2000000; /* link address. The bootloader with relocate here before loading the kernel */
+    . = dram_start_addr;
 
     /*
     This is the "start" of the stack section for the boot core.
@@ -58,7 +54,6 @@ SECTIONS
 
 	. = ALIGN(8);
 
-	__binary_end_exclusive = .;
 	
     /* bsses */
     .bss (NOLOAD) : ALIGN(16)

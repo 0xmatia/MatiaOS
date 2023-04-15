@@ -139,7 +139,8 @@ impl GPIOInner {
     /// Disable pull-up/down on pins 14 and 15
     #[cfg(feature = "bsp_rpi3")]
     fn disable_pud_14_15_bcm2837(&mut self) {
-        use crate::cpu;
+        use crate::time;
+        use core::time::Duration;
         // 1. Write to GPPUD to set the required control signal (i.e. Pull-up or Pull-Down or neither
         // to remove the current Pull-up/down)
         // 2. Wait 150 cycles – this provides the required set-up time for the control signal
@@ -155,21 +156,21 @@ impl GPIOInner {
         //
         // - According to Wikipedia, the fastest Pi3 clocks around 1.4 GHz.
         // - The Linux 2837 GPIO driver waits 1 µs between the steps.
-        //
-        // So lets try to be on the safe side and default to 2000 cycles, which would equal 1 µs
-        // would the CPU be clocked at 2 GHz.
-        const DELAY: usize = 2000;
+        // Previously (as written in the loader) we just span the cpu. But after implementing the
+        // timer feature, we can block for accurate time periods (like for 1 us like the linux
+        // kernel does).
+        const DELAY: Duration = Duration::from_micros(1);
 
         // turn off pull up/down
         self.registers.GPPUD.write(GPPUD::PUD::off);
         // wait
-        cpu::spin_for_cycles(DELAY);
+        time::time_manager().spin_for_duration(DELAY);
         // assert clock on pins 14 and 15
         self.registers
             .GPPUDCLK0
             .write(GPPUDCLK0::PUDCLK14::assertClock + GPPUDCLK0::PUDCLK15::assertClock);
         // wait
-        cpu::spin_for_cycles(DELAY);
+        time::time_manager().spin_for_duration(DELAY);
         // turn off pull up/down
         self.registers.GPPUD.write(GPPUD::PUD::off);
         // write to GPPUDCLK0 to remove clock
@@ -219,14 +220,8 @@ impl GPIO {
 }
 
 // Interface code for the device driver trait (as specified in driver.rs)
-
 impl driver::interface::DeviceDriver for GPIO {
-    /// Returns identity string of the driver
     fn compatible(&self) -> &'static str {
-        "GPIO Device Driver"
+        "BCM GPIO Device driver version 1.0"
     }
-  //  fn init(&self) -> Result<(), &'static str> {
-        //self.init_gpio_uart_pins();
-        //Ok(())
-    //}
 }
